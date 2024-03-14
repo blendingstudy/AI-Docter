@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Chat</title>
+</head>
+<body>
+    <h1>Doctor Chat</h1>
+    <form method="post">
+        {% csrf_token %}
+        <p>User:</p>
+        <input type="text" name="message">
+        <button type="submit">Send</button>
+    </form>
+    {% if user_message %}
+        <p>환자: {{ user_message }}</p>
+    {% endif %}
+    {% if llm_message %}
+        <p>AI의사: {{ llm_message }}</p>
+    {% endif %}
+</body>
+</html>
