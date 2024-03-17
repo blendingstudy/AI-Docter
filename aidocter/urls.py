@@ -17,9 +17,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from aidocter.views import chat_llm
+from aidocter.views import chat_view, chat_llm
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('chat/', chat_llm, name='chat_llm')
+    path('chat/view/', chat_view, name='chat_view'),
+    path('chat/llm/', chat_llm, name='chat_llm')
 ]

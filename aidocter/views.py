@@ -1,23 +1,38 @@
+import os
+from django.http import HttpResponse, JsonResponse
+from dotenv import load_dotenv
 from django.shortcuts import render
 from langchain_openai import ChatOpenAI
 from langchain.chains.llm import LLMChain
-from langchain.prompts.chat import ChatPromptTemplate, AIMessagePromptTemplate, HumanMessagePromptTemplate
+from langchain.prompts.chat import ChatPromptTemplate, AIMessagePromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
+from langchain.memory import ConversationBufferMemory
 
+load_dotenv()
 
+OPEN_API_KEY = os.getenv('OPEN_API_KEY')
+
+#대화내용 저장 메모리
+memory = ConversationBufferMemory(memory_key="chat_history")
+
+#채팅 화면 호출
+def chat_view(request):
+    return render(request, 'chat.html')
+    
+#LLM채팅 요청 API
 def chat_llm(request):
-    llm = ChatOpenAI(openai_api_key='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')
+    llm = ChatOpenAI(openai_api_key=OPEN_API_KEY)
     context = {}
 
-    message = request.POST.get('message')  # 사용자가 제공한 메시지 가져오기
+    message = request.GET.get('message')  # 사용자가 제공한 메시지 가져오기
     context['user_message'] = message  # 사용자가 제공한 메시지를 context에 추가
 
-    # Call LangChain to process the message
     if message:  # 사용자가 메시지를 제공한 경우에만 처리
         prompt = ChatPromptTemplate.from_messages(
             [
-                AIMessagePromptTemplate.from_template("""
+                SystemMessagePromptTemplate.from_template("""
                     Please answer in Korean
                     You are an AI doctor counseling patients
+                    {chat_history}
                 """),
                 HumanMessagePromptTemplate.from_template("{input}"),
             ]
@@ -26,9 +41,11 @@ def chat_llm(request):
         response = LLMChain(
             llm=llm, 
             prompt=prompt,
-            verbose=True)
+            verbose=True,
+            memory=memory
+        )
         
-        context['llm_message'] = response.run(input=message)  # 언어 처리 모델로 메시지 처리 후 결과를 context에 추가
+        context['llm_message'] = response.predict(input=message)  # 언어 처리 모델로 메시지 처리 후 결과를 context에 추가
 
-    return render(request, 'chat.html', context)
+    return JsonResponse(context)
 
