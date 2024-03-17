@@ -2,6 +2,7 @@ import os
 from django.http import HttpResponse, JsonResponse
 from dotenv import load_dotenv
 from django.shortcuts import render
+from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain.chains.llm import LLMChain
 from langchain.prompts.chat import ChatPromptTemplate, AIMessagePromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
