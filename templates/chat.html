@@ -3,21 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Doctor Chat</title>
+    <title>AI의사 상담</title>
 </head>
 <body>
-    <h1>Doctor Chat</h1>
-    <form method="post">
-        {% csrf_token %}
-        <p>User:</p>
-        <input type="text" name="message">
-        <button type="submit">Send</button>
-    </form>
-    {% if user_message %}
-        <p>환자: {{ user_message }}</p>
-    {% endif %}
-    {% if llm_message %}
-        <p>AI의사: {{ llm_message }}</p>
-    {% endif %}
+    <h1>AI의사 상담</h1>
+        입력 : <input type="text" id="message">
+        <button type="button" onclick="sendMessage()">Send</button>
+    <span id="chat_history"></span>
+
+    <script>
+        function sendMessage() {
+            const message = document.getElementById('message').value;
+            appendMessage('환자: '+message);
+            
+
+            // API 엔드포인트 URL
+            const apiUrl = 'http://127.0.0.1:8000/chat/llm?message='+message;
+
+            // fetch() 함수를 사용하여 GET 요청 보내기
+            fetch(apiUrl)
+                .then(response => {
+                    // 응답이 성공적으로 받아졌는지 확인
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    // JSON 형식으로 파싱된 응답을 반환
+                    return response.json();
+                })
+                .then(data => {
+                    // API로부터 받은 데이터를 처리
+                    console.log(data);
+                    appendMessage('AI의사: '+data.llm_message);
+                })
+                .catch(error => {
+                    // 오류 발생 시 처리
+                    console.error('오류발생 ', error);
+            });
+        }
+
+        function appendMessage(message) {
+            const chatHistoryElement = document.getElementById('chat_history');
+            // 새로운 메시지를 채팅 히스토리에 추가
+            const messageElement = document.createElement('p');
+            messageElement.textContent = message;
+            chatHistoryElement.appendChild(messageElement);
+        }
+    </script>
 </body>
 </html>
