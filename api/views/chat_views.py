@@ -14,10 +14,6 @@ OPEN_API_KEY = os.getenv('OPEN_API_KEY')
 
 #대화내용 저장 메모리
 memory = ConversationBufferMemory(memory_key="chat_history")
-
-#채팅 화면 호출
-def chat_view(request):
-    return render(request, 'chat.html')
     
 #LLM채팅 요청 API
 def chat_llm(request):
