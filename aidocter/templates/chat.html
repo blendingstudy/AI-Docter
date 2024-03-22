@@ -12,6 +12,12 @@
     <span id="chat_history"></span>
 
     <script>
+        var message = "{{ message }}";
+
+        if(message) {
+            alert(message);
+        }
+        
         function sendMessage() {
             const message = document.getElementById('message').value;
             appendMessage('환자: '+message);
