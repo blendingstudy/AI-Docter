@@ -11,4 +11,5 @@ urlpatterns = [
     #action처리
     path('action/register', views.register, name='register'),
     path('action/login', views.login, name='login'),
+    path('action/logout', views.logout, name='logout'),
 ]
