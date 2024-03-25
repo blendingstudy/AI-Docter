@@ -1,25 +1,7 @@
 from django.http import HttpResponseForbidden
 from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
-
-#기본경로 리다이렉트
-def index(request): 
-    return redirect('view/login')
-
-#화면 호출 메소드
-def view(request, view_name):
-    
-    context: dict = {}
-    
-    if request.method == 'GET':
-    
-        message = request.GET.get('message')
-
-        if message:
-            context['message'] = message
-    
-    return render(request, f'{view_name}.html', context)
 
 #회원가입
 def register(request):
@@ -36,8 +18,11 @@ def register(request):
             return redirect(f'/view/register?message={message}') 
         except User.DoesNotExist:
             # 존재하지 않는 아이디라면 새로운 멤버 생성
-            new_member = User.objects.create(username=username, password=password)
-            print("회원생성: ", new_member)
+            # new_member = User.objects.create(username=username, password=password)
+            user = User(username=username)
+            user.set_password(password)
+            user.save()
+            print("회원생성: ", user)
             message = '회원가입 완료'
             # 회원가입이 성공했을 경우 로그인 페이지로 리다이렉트
             return redirect(f'/view/login?message={message}')  # login은 로그인 페이지의 URL 이름입니다.
@@ -52,14 +37,13 @@ def login(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         
-        
         user = authenticate(username=username, password=password)
         print(user)
         
         if user is not None:
             print("로그인성공: "+str(user))
             
-            login(request, user)
+            auth_login(request, user)
             
             # 이미 존재하는 아이디라면 실패 메시지를 표시하고 이전 페이지로 리다이렉트
             return redirect('/view/chat') 
@@ -77,9 +61,9 @@ def login(request):
 #로그아웃
 def logout(request):
     
-    logout(request)
+    auth_logout(request)
         
-    return render(request, '/view/login')
+    return redirect('/view/login')
     
     
 
