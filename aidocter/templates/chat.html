@@ -1,61 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    {% load static %} 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI의사 상담</title>
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/chat.css' %}" rel="stylesheet">
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 </head>
 <body>
-    <h1>AI의사 상담</h1>
-    <form action="/action/logout">
-        <button type="submit">로그아웃</button><br>
-    </form>
-    입력 : <input type="text" id="message">
-    <button type="button" onclick="sendMessage()">Send</button>
-    <span id="chat_history"></span>
+    <div class="container chat-container">
+        <div class="chat-header  d-flex justify-content-between">
+            <h5 class="mb-0">G의사</h5>
+            <form action="/action/logout">
+                <button class="btn btn-danger" type="submit">로그아웃</button>
+            </form>
+        </div>
+        <div class="chat-body" id="chat-body">
+            <!-- 메시지가 동적으로 추가될 위치 -->
+        </div>
+        <div class="chat-footer">
+            <form class="form-inline" id="message-form">
+                <input type="text" class="form-control" id="message" placeholder="메시지를 입력하세요...">
+                <button type="submit" class="btn btn-primary">전송</button>
+            </form>
+        </div>
+    </div>
 
     <script>
         var message = "{{ message }}";
-
+        console
         if(message) {
             alert(message);
         }
+
+        const messageForm = document.getElementById('message-form');
+        const chatBody = document.getElementById('chat-body');
         
-        function sendMessage() {
-            const message = document.getElementById('message').value;
-            appendMessage('환자: '+message);
+        // 폼 제출 이벤트 핸들러
+        messageForm.addEventListener('submit', async (event) => {
+            event.preventDefault(); // 기본 제출 이벤트 방지
+            const messageInput = document.getElementById('message');
+            const message = messageInput.value; // 입력된 메시지
+
+            addMessage('user', message);
+            messageInput.value = ''; // 입력창 비우기
+            // 서버로 메시지 전송
+            const response = await fetch(`http://127.0.0.1:8000/chat/llm?message=${message}`);
+            const data = await response.json();
             
 
-            // API 엔드포인트 URL
-            const apiUrl = 'http://127.0.0.1:8000/chat/llm?message='+message;
+            // 메시지 추가
+            addMessage('llm', data.llm_message);
 
-            // fetch() 함수를 사용하여 GET 요청 보내기
-            fetch(apiUrl)
-                .then(response => {
-                    // 응답이 성공적으로 받아졌는지 확인
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    // JSON 형식으로 파싱된 응답을 반환
-                    return response.json();
-                })
-                .then(data => {
-                    // API로부터 받은 데이터를 처리
-                    console.log(data);
-                    appendMessage('AI의사: '+data.llm_message);
-                })
-                .catch(error => {
-                    // 오류 발생 시 처리
-                    console.error('오류발생 ', error);
-            });
-        }
+        });
 
-        function appendMessage(message) {
-            const chatHistoryElement = document.getElementById('chat_history');
-            // 새로운 메시지를 채팅 히스토리에 추가
-            const messageElement = document.createElement('p');
-            messageElement.textContent = message;
-            chatHistoryElement.appendChild(messageElement);
+        
+        // 메시지 추가 함수
+        function addMessage(sender, message) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('chat-message');
+
+            const messageBubble = document.createElement('div');
+            messageBubble.classList.add('message-bubble');
+
+            if (sender === 'user') {
+                messageElement.classList.add('message-sent');
+            } else {
+                messageElement.classList.add('message-received');
+            }
+
+            messageBubble.textContent = message;
+            messageElement.appendChild(messageBubble);
+            chatBody.prepend(messageElement); // 새로운 메시지를 맨 위에 추가
+
+            // 스크롤 내리기
+            chatBody.scrollTop = 0;
         }
     </script>
 </body>
