@@ -8,6 +8,7 @@ urlpatterns = [
     path('', view_views.index),
     path('view/login', view_views.login, name='view_login'),
     path('view/register', view_views.register, name='view_register'),
+    path('view/chat-list', view_views.chat_list, name='view_chat_list'),
     path('view/chat', view_views.chat, name='view_chat'),
     
     #action처리

@@ -46,7 +46,7 @@ def login(request):
             auth_login(request, user)
             
             # 이미 존재하는 아이디라면 실패 메시지를 표시하고 이전 페이지로 리다이렉트
-            return redirect('/view/chat') 
+            return redirect('/view/chat-list') 
         else:
             print("로그인실패: 회원없음")
             
