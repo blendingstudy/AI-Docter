@@ -2,7 +2,7 @@
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
 
-from aidocter.models import ChatList
+from aidocter.models.chat_list import ChatList
 
 def index(request): 
     return redirect('view/login')
@@ -63,8 +63,11 @@ def chat(request):
     if request.method == 'GET':
     
         message = request.GET.get('message')
+        chat_list_id = request.GET.get('id')
 
         if message:
             context['message'] = message
+            
+        context['id'] = chat_list_id
     
     return render(request, 'chat.html', context)

@@ -29,8 +29,9 @@
     </div>
 
     <script>
-        var message = "{{ message }}";
-        console
+        const message = "{{ message }}";
+        const chatId = "{{ id }}";
+
         if(message) {
             alert(message);
         }
@@ -47,7 +48,7 @@
             addMessage('user', message);
             messageInput.value = ''; // 입력창 비우기
             // 서버로 메시지 전송
-            const response = await fetch(`http://127.0.0.1:8000/chat/llm?message=${message}`);
+            const response = await fetch(`http://127.0.0.1:8000/chat/llm?message=${message}&chatId=${chatId}`);
             const data = await response.json();
             
 
