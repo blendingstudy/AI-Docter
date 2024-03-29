@@ -24,7 +24,7 @@
 			<ul class="list-group">
 			{% for chat in chat_list %}
 				<li class="list-group-item">
-					<div class="row">
+					<div class="row" onclick="location.href='/view/chat?id={{ chat.id }}'">
 						<div class="col-md-6">{{ chat.last_message }}</div>
 						<div class="col-md-6">{{ chat.created_at }}</div>
 					</div>

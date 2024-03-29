@@ -62,7 +62,7 @@ def login(request):
 
 
 #로그아웃
-@require_POST
+@require_GET
 def logout(request):
     
     auth_logout(request)

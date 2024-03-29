@@ -13,7 +13,7 @@
     <div class="container chat-container">
         <div class="chat-header  d-flex justify-content-between">
             <h5 class="mb-0">G의사</h5>
-            <form action="/action/logout">
+            <form action="/action/logout" method="GET">
                 <button class="btn btn-danger" type="submit">로그아웃</button>
             </form>
         </div>
@@ -29,11 +29,37 @@
     </div>
 
     <script>
+        const csrfToken = '{{ csrf_token }}';
         const message = "{{ message }}";
         const chatId = "{{ id }}";
 
         if(message) {
             alert(message);
+        }
+
+        if(chatId) {
+            fetch('http://127.0.0.1:8000/chat/get-history', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ 
+                    chatId: chatId 
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+              console.log(data);
+              // 이전 채팅 내역 추가
+                data.forEach(item => {
+                    const sender = item.username === 'llm' ? 'llm' : 'user';
+                    addMessage(sender, item.message);
+                });
+            })
+            .catch(error => {
+              console.error('Error:', error);
+            });
         }
 
         const messageForm = document.getElementById('message-form');
@@ -43,17 +69,30 @@
         messageForm.addEventListener('submit', async (event) => {
             event.preventDefault(); // 기본 제출 이벤트 방지
             const messageInput = document.getElementById('message');
-            const message = messageInput.value; // 입력된 메시지
+            const sendMessage = messageInput.value; // 입력된 메시지
 
-            addMessage('user', message);
+            addMessage('user', sendMessage);
             messageInput.value = ''; // 입력창 비우기
             // 서버로 메시지 전송
-            const response = await fetch(`http://127.0.0.1:8000/chat/llm?message=${message}&chatId=${chatId}`);
-            const data = await response.json();
-            
-
-            // 메시지 추가
-            addMessage('llm', data.llm_message);
+            await fetch('http://127.0.0.1:8000/chat/llm', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ 
+                    message: sendMessage,
+                    chatId: chatId 
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+              // 메시지 추가
+              addMessage('llm', data.llm_message);
+            })
+            .catch(error => {
+              console.error('Error:', error);
+            });
 
         });
 
