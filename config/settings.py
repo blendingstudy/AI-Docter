@@ -138,3 +138,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 LOGIN_URL = '/view/login'
+
+# SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 3600
