@@ -10,6 +10,7 @@ from langchain.prompts.chat import ChatPromptTemplate, HumanMessagePromptTemplat
 from langchain.memory import ConversationBufferMemory
 
 from aidocter.models.chat_history import ChatHistory
+from aidocter.models.chat_list import ChatList
 
 load_dotenv()
 
@@ -32,7 +33,10 @@ def chat_llm(request):
     result['user_message'] = message  # 사용자가 제공한 메시지를 context에 추가
     
     if not user in memorys:
-        memorys[user] = ConversationBufferMemory(memory_key="chat_history")
+        memorys[user] = {}
+        
+    if not chat_list_id in memorys[user]:
+        memorys[user][chat_list_id] = ConversationBufferMemory(memory_key="chat_history")
 
     if message:  # 사용자가 메시지를 제공한 경우에만 처리
         prompt = ChatPromptTemplate.from_messages([
@@ -49,7 +53,7 @@ def chat_llm(request):
             llm=llm, 
             prompt=prompt,
             verbose=True,
-            memory=memorys[user]
+            memory=memorys[user][chat_list_id]
         )
         
         # 언어 처리 모델로 메시지 처리 후 결과를 context에 추가
@@ -68,6 +72,10 @@ def chat_llm(request):
             message=result['llm_message'],
             div='llm'
         )
+        
+        chat_hist = ChatHistory.objects.filter(chat_list_id=chat_list_id).order_by('-id').first()
+        
+        ChatList.objects.filter(id=chat_list_id).update(last_message=chat_hist.message)
 
     return JsonResponse(result)
 

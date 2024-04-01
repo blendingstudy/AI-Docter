@@ -26,7 +26,7 @@
 				<li class="list-group-item">
 					<div class="row" onclick="location.href='/view/chat?id={{ chat.id }}'">
 						<div class="col-md-6">{{ chat.last_message }}</div>
-						<div class="col-md-6">{{ chat.created_at }}</div>
+						<div class="col-md-6">{{ chat.created_at|date:"Y년 m월 d일 H시 i분" }}</div>
 					</div>
 				</li>
 			{% empty %}
@@ -35,10 +35,11 @@
 			</ul>
 		</div>
 		
-		<!-- 뒤로 가기 버튼 -->
-		<div class="d-grid">
-			<button class="btn btn-outline-secondary" type="button">뒤로 가기</button>
-		</div>
+		<form action="/action/logout" method="GET">
+			<div class="d-grid">
+				<button class="btn btn-danger" type="submit">로그아웃</button>
+			</div>
+		</form>
 	</div>
 </body>
 </html>
