@@ -2,12 +2,12 @@ import json
 import os
 from django.http import JsonResponse, HttpResponse
 from django.core import serializers
-from django.views.decorators.http import require_POST, require_GET
+from django.views.decorators.http import require_POST
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain.chains.llm import LLMChain
 from langchain.prompts.chat import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate, MessagesPlaceholder
-from langchain.memory import ConversationBufferMemory
+from langchain.memory import ConversationBufferWindowMemory
 
 from aidocter.models.chat_history import ChatHistory
 from aidocter.models.chat_list import ChatList
@@ -32,12 +32,6 @@ def chat_llm(request):
 
     result['user_message'] = message  # 사용자가 제공한 메시지를 context에 추가
     
-    if not user in memorys:
-        memorys[user] = {}
-        
-    if not chat_list_id in memorys[user]:
-        memorys[user][chat_list_id] = ConversationBufferMemory(memory_key="chat_history")
-
     if message:  # 사용자가 메시지를 제공한 경우에만 처리
         prompt = ChatPromptTemplate.from_messages([
             SystemMessagePromptTemplate.from_template("""
@@ -80,13 +74,31 @@ def chat_llm(request):
     return JsonResponse(result)
 
 @require_POST
-def get_chat_hisotry(request):
+def set_chat_hisotry(request):
     
+    user = request.user
     data = json.loads(request.body)
     chat_list_id = data.get('chatId')
     result = []
     
     chat_history = ChatHistory.objects.filter(chat_list_id=chat_list_id)
+    
+    if not user in memorys:
+        memorys[user] = {}
+    
+    if not chat_list_id in memorys[user]:
+        # ChatHistory 모델에서 chat_list_id로 조회
+        memory = ConversationBufferWindowMemory(memory_key="chat_history", k=5)
+        if chat_history.exists():
+            # 조회 결과가 있는 경우에만 ConversationBufferMemory에 값 할당
+            for chat in chat_history:
+                if chat.div == 'user':
+                    memory.chat_memory.add_user_message(chat.message)
+                elif chat.div == 'llm':
+                    memory.chat_memory.add_ai_message(chat.message)
+
+        memorys[user][chat_list_id] = memory
+            
     chat_history_data = serializers.serialize('json', chat_history)
     
     json_data = json.loads(chat_history_data)

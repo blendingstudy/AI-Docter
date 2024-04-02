@@ -29,9 +29,6 @@ def register(request):
         message = '회원가입 완료'
         # 회원가입이 성공했을 경우 로그인 페이지로 리다이렉트
         return redirect(f'/view/login?message={message}')  # login은 로그인 페이지의 URL 이름입니다.
-    
-    print("회원생성 실패")
-    return render(request, 'login.html')
 
 #로그인
 @require_POST
@@ -55,10 +52,7 @@ def login(request):
         
         message = '로그인실패: 아이디 또는 비밀번호 확인'
         # 로그인 실패 메시지를 표시하고 이전 페이지로 리다이렉트
-        return redirect(f'/view/login?message={message}') 
-    
-    print("로그인 실패")
-    return redirect('/view/login') 
+        return redirect(f'/view/login?message={message}')  
 
 
 #로그아웃

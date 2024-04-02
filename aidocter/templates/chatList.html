@@ -8,6 +8,12 @@
     <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/chat.css' %}" rel="stylesheet">
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+	<style>
+		.custom-hover:hover {
+			background-color: #f8f9fa;
+			cursor: pointer;
+		}
+	</style>
 </head>
 <body>
 	<div class="container mt-5">
@@ -20,13 +26,12 @@
 		
 		<!-- 이전 채팅 내역 리스트 -->
 		<div class="mb-3">
-			<h5>채팅 내역:</h5>
 			<ul class="list-group">
 			{% for chat in chat_list %}
-				<li class="list-group-item">
+				<li class="list-group-item custom-hover">
 					<div class="row" onclick="location.href='/view/chat?id={{ chat.id }}'">
-						<div class="col-md-6">{{ chat.last_message }}</div>
-						<div class="col-md-6">{{ chat.created_at|date:"Y년 m월 d일 H시 i분" }}</div>
+						<div class="col-md-10">{{ chat.last_message }}</div>
+						<div class="col-md-2">{{ chat.created_at|date:"Y년 m월 d일" }}</br>{{ chat.created_at|date:"H시 i분" }}</div>
 					</div>
 				</li>
 			{% empty %}
