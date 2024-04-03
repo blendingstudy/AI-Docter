@@ -4,7 +4,7 @@ from django.views.decorators.http import require_POST, require_GET
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
 
-from aidocter.models.chat_list import ChatList
+from app.aidocter.models.chat_list import ChatList
 
 #회원가입
 @require_POST

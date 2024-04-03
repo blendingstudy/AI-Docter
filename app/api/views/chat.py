@@ -1,18 +1,23 @@
 import json
 import os
+import xml.etree.ElementTree as ET
 from django.http import JsonResponse, HttpResponse
 from django.core import serializers
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain.chains.llm import LLMChain
 from langchain.prompts.chat import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate, MessagesPlaceholder
 from langchain.memory import ConversationBufferWindowMemory
+import requests
 
-from aidocter.models.chat_history import ChatHistory
-from aidocter.models.chat_list import ChatList
+from app.aidocter.models.chat_history import ChatHistory
+from app.aidocter.models.chat_list import ChatList
+from common.utils import Utils
 
 load_dotenv()
+
+HOSPITAL_API_KEY = os.getenv('HOSPITAL_API_KEY')
 
 OPEN_API_KEY = os.getenv('OPEN_API_KEY')
 llm = ChatOpenAI(openai_api_key=OPEN_API_KEY)
@@ -122,6 +127,43 @@ def set_chat_hisotry(request):
     print(json_result)
     
     return HttpResponse(json_result)
+
+
+@require_GET
+def get_hospital(request):
+    
+    url = 'http://apis.data.go.kr/B551182/hospInfoServicev2/getHospBasisList'
+    params = {
+        'serviceKey': HOSPITAL_API_KEY,
+        'pageNo': '1',
+        'numOfRows': '10',
+        'sidoCd': '110000',
+        'sgguCd': '110019',
+        'emdongNm': '신내동',
+        'yadmNm': '서울의료원',
+        'zipCd': '2010',
+        'clCd': '11',
+        'dgsbjtCd': '01',
+        'xPos': '127.09854004628151',
+        'yPos': '37.6132113197367',
+        'radius': '3000'
+    }
+
+    
+    response = requests.get(url=url, params=params)
+    if response.status_code == 200:
+        xml_data = response.content  # XML 응답 데이터
+        root = ET.fromstring(xml_data)  # XML 데이터를 파싱하여 ElementTree 객체 생성
+
+        # 딕셔너리로 변환된 XML 데이터
+        data_dict = Utils.xml_to_dict(root)
+        print(data_dict)
+    else:
+        print('Error:', response.content)
+        
+        
+    return HttpResponse(response.status_code)
+        
     
     
 
