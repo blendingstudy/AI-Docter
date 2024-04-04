@@ -1,12 +1,15 @@
 import json
 import os
 import xml.etree.ElementTree as ET
+import pandas as pd
 from django.http import JsonResponse, HttpResponse
 from django.core import serializers
 from django.views.decorators.http import require_POST, require_GET
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.chains.llm import LLMChain
+from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
+from langchain.vectorstores.chroma import Chroma
 from langchain.prompts.chat import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate, MessagesPlaceholder
 from langchain.memory import ConversationBufferWindowMemory
 import requests
@@ -21,6 +24,7 @@ HOSPITAL_API_KEY = os.getenv('HOSPITAL_API_KEY')
 
 OPEN_API_KEY = os.getenv('OPEN_API_KEY')
 llm = ChatOpenAI(openai_api_key=OPEN_API_KEY)
+embeddings = OpenAIEmbeddings(openai_api_key=OPEN_API_KEY)
 memorys: dict = {} #대화내용 저장 메모리
     
 #LLM채팅 요청 API
@@ -164,6 +168,32 @@ def get_hospital(request):
         
     return HttpResponse(response.status_code)
         
+        
+@require_GET
+def set_chroma(request):
+    
+    question = request.GET.get('question')
+    
+    db = Chroma(embedding_function=embeddings, persist_directory="chroma_db")
+    
+    df = pd.read_excel('static/file/컬럼정보_코드.xls')
+    # 열 제목 추출
+    column_names = df.columns.tolist()
+
+    # DataFrame의 각 행을 열 제목과 함께 텍스트로 변환
+    texts = []
+    for _, row in df.iterrows():
+        row_dict = {col: str(val) for col, val in zip(column_names, row.astype(str))}
+        texts.append(json.dumps(row_dict, ensure_ascii=False))
+        
+    print(texts)
+    metadatas = [{'index': idx} for idx in df.index]
+    db.add_texts(texts, metadatas=metadatas)
     
     
+    retriever = db.as_retriever(search_type="mmr", search_kwargs={"k": 30, "lambda_mult": 0.35})
+    test = retriever.get_relevant_documents(question)
+    
+    
+    return HttpResponse(test)
 
