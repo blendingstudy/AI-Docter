@@ -45,7 +45,7 @@ def chat_list(request):
     if message:
         context['message'] = message
     
-    context['chat_list'] = ChatList.objects.filter(username=user)
+    context['chat_list'] = ChatList.objects.filter(username=user).order_by('-id')
     print(context)
     return render(request, 'chatList.html', context)
 
