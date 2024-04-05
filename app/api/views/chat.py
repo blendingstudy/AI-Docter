@@ -8,9 +8,10 @@ from django.views.decorators.http import require_POST, require_GET
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.chains.llm import LLMChain
-from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
+from langchain.chains.retrieval_qa.base import RetrievalQA
 from langchain.vectorstores.chroma import Chroma
 from langchain.prompts.chat import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate, MessagesPlaceholder
+from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferWindowMemory
 import requests
 
@@ -35,6 +36,8 @@ def chat_llm(request):
     chat_list_id = data.get('chatId')
     message = data.get('message')  # 사용자가 제공한 메시지 가져오기
     result = {}
+    db = Chroma(embedding_function=embeddings, persist_directory="chroma_db")
+    retriever = db.as_retriever()
     
     print(message)
     print(chat_list_id)
@@ -42,25 +45,50 @@ def chat_llm(request):
     result['user_message'] = message  # 사용자가 제공한 메시지를 context에 추가
     
     if message:  # 사용자가 메시지를 제공한 경우에만 처리
-        prompt = ChatPromptTemplate.from_messages([
-            SystemMessagePromptTemplate.from_template("""
-                Please answer in Korean
-                You are an AI doctor counseling patients
+        # prompt = ChatPromptTemplate.from_messages([
+        #     SystemMessagePromptTemplate.from_template("""
+        #         Please answer in Korean
+        #         You are an AI doctor counseling patients
                 
-                {chat_history}
-            """),
-            HumanMessagePromptTemplate.from_template("{input}"),
-        ])
+        #         {chat_history}
+        #     """),
+        #     HumanMessagePromptTemplate.from_template("{input}"),
+        # ])
         
-        response = LLMChain(
-            llm=llm, 
-            prompt=prompt,
+        # chain = LLMChain(
+        #     llm=llm, 
+        #     prompt=prompt,
+        #     verbose=True,
+        #     memory=memorys[user][chat_list_id]
+        # )
+        
+        PROMPT_TEMPLATE = """
+            Please answer in Korean
+            You are an AI doctor counseling patients
+ 
+            {context}
+
+            {question}
+        """
+            
+        PROMPT = PromptTemplate(input_variables=["context", "question"], template=PROMPT_TEMPLATE)
+
+        chain = RetrievalQA.from_llm(
+            llm=llm,
+            prompt=PROMPT,
+            retriever=retriever,
+            memory=memorys[user][chat_list_id],
+            return_source_documents=True,
             verbose=True,
-            memory=memorys[user][chat_list_id]
+            llm_chain_kwargs={"verbose": True}
         )
+    
+        chain_output = chain({"query": message})
+        print(chain_output)
+        result['llm_message'] = chain_output['result']
         
         # 언어 처리 모델로 메시지 처리 후 결과를 context에 추가
-        result['llm_message'] = response.run(input=message)
+        # result['llm_message'] = chain.run(input=message)
         
         # ChatHistory 모델을 사용하여 대화 내용 저장
         ChatHistory.objects.create(
@@ -90,14 +118,20 @@ def set_chat_hisotry(request):
     chat_list_id = data.get('chatId')
     result = []
     
-    chat_history = ChatHistory.objects.filter(chat_list_id=chat_list_id)
+    chat_history = ChatHistory.objects.filter(chat_list_id=chat_list_id).order_by('id')
     
     if not user in memorys:
         memorys[user] = {}
     
     if not chat_list_id in memorys[user]:
         # ChatHistory 모델에서 chat_list_id로 조회
-        memory = ConversationBufferWindowMemory(memory_key="chat_history", k=5)
+        memory = ConversationBufferWindowMemory(
+            memory_key="chat_history", 
+            output_key="result", 
+            k=5, 
+            return_messages=True
+        )
+        
         if chat_history.exists():
             # 조회 결과가 있는 경우에만 ConversationBufferMemory에 값 할당
             for chat in chat_history:
@@ -176,23 +210,24 @@ def set_chroma(request):
     
     db = Chroma(embedding_function=embeddings, persist_directory="chroma_db")
     
-    df = pd.read_excel('static/file/컬럼정보_코드.xls')
-    # 열 제목 추출
-    column_names = df.columns.tolist()
+    # df = pd.read_excel('static/file/컬럼정보_코드.xls')
+    # # 열 제목 추출
+    # column_names = df.columns.tolist()
 
-    # DataFrame의 각 행을 열 제목과 함께 텍스트로 변환
-    texts = []
-    for _, row in df.iterrows():
-        row_dict = {col: str(val) for col, val in zip(column_names, row.astype(str))}
-        texts.append(json.dumps(row_dict, ensure_ascii=False))
+    # # DataFrame의 각 행을 열 제목과 함께 텍스트로 변환
+    # texts = []
+    # for _, row in df.iterrows():
+    #     row_dict = {col: str(val) for col, val in zip(column_names, row.astype(str))}
+    #     texts.append(json.dumps(row_dict, ensure_ascii=False))
         
-    print(texts)
-    metadatas = [{'index': idx} for idx in df.index]
-    db.add_texts(texts, metadatas=metadatas)
+    # print(texts)
+    # metadatas = [{'index': idx} for idx in df.index]
+    # db.add_texts(texts, metadatas=metadatas)
     
     
-    retriever = db.as_retriever(search_type="mmr", search_kwargs={"k": 30, "lambda_mult": 0.35})
+    retriever = db.as_retriever()
     test = retriever.get_relevant_documents(question)
+    print(test)
     
     
     return HttpResponse(test)
