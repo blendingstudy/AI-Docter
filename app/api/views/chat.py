@@ -196,11 +196,39 @@ def get_hospital(request):
         # 딕셔너리로 변환된 XML 데이터
         data_dict = Utils.xml_to_dict(root)
         print(data_dict)
+        return HttpResponse(data_dict)
+    else:
+        return HttpResponse(response.status_code)
+        
+
+@require_GET
+def analyze_symptoms(request):
+    
+    url = 'http://apis.data.go.kr/B551182/diseaseInfoService/getDissNameCodeList'
+    params = {
+        "serviceKey": "YOUR_SERVICE_KEY",
+        "numOfRows": "10",
+        "pageNo": "1",
+        "sickType": "1",
+        "medTp": "1",
+        "diseaseType": "SICK_NM",
+        "searchText": "감기"
+    }
+
+    
+    response = requests.get(url=url, params=params)
+    if response.status_code == 200:
+        xml_data = response.content  # XML 응답 데이터
+        root = ET.fromstring(xml_data)  # XML 데이터를 파싱하여 ElementTree 객체 생성
+
+        # 딕셔너리로 변환된 XML 데이터
+        data_dict = Utils.xml_to_dict(root)
+        print(data_dict)
+        return HttpResponse(json.dumps(data_dict, ensure_ascii=False))
     else:
         print('Error:', response.content)
+        return HttpResponse(response.status_code)
         
-        
-    return HttpResponse(response.status_code)
         
         
 @require_GET
