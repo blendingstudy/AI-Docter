@@ -1,10 +1,9 @@
-from django.http import HttpResponseForbidden
-from django.shortcuts import render, redirect
-from django.views.decorators.http import require_POST, require_GET
+from django.shortcuts import redirect
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
+from django.shortcuts import redirect
+from django.views.decorators.http import require_POST, require_GET
 
-from app.aidocter.models.chat_list import ChatList
 
 #회원가입
 @require_POST

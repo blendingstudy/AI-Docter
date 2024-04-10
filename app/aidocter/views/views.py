@@ -1,9 +1,9 @@
 #기본경로 리다이렉트
-from django.shortcuts import redirect, render
+from app.aidocter.models.chat_list import ChatList
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET
 
-from app.aidocter.models.chat_list import ChatList
 
 @require_GET
 def index(request): 

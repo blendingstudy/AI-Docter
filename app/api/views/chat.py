@@ -1,16 +1,13 @@
 import json
 import os
 import xml.etree.ElementTree as ET
-import pandas as pd
 from django.http import JsonResponse, HttpResponse
 from django.core import serializers
 from django.views.decorators.http import require_POST, require_GET
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain.chains.llm import LLMChain
 from langchain.chains.retrieval_qa.base import RetrievalQA
 from langchain.vectorstores.chroma import Chroma
-from langchain.prompts.chat import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate, MessagesPlaceholder
 from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferWindowMemory
 import requests
@@ -26,8 +23,9 @@ HOSPITAL_API_KEY = os.getenv('HOSPITAL_API_KEY')
 OPEN_API_KEY = os.getenv('OPEN_API_KEY')
 llm = ChatOpenAI(openai_api_key=OPEN_API_KEY)
 embeddings = OpenAIEmbeddings(openai_api_key=OPEN_API_KEY)
-memorys: dict = {} #대화내용 저장 메모리
-    
+memorys: dict = {}  #대화내용 저장 메모리
+
+
 #LLM채팅 요청 API
 @require_POST
 def chat_llm(request):
@@ -38,30 +36,30 @@ def chat_llm(request):
     result = {}
     db = Chroma(embedding_function=embeddings, persist_directory="chroma_db")
     retriever = db.as_retriever()
-    
+
     print(message)
     print(chat_list_id)
 
     result['user_message'] = message  # 사용자가 제공한 메시지를 context에 추가
-    
+
     if message:  # 사용자가 메시지를 제공한 경우에만 처리
         # prompt = ChatPromptTemplate.from_messages([
         #     SystemMessagePromptTemplate.from_template("""
         #         Please answer in Korean
         #         You are an AI doctor counseling patients
-                
+
         #         {chat_history}
         #     """),
         #     HumanMessagePromptTemplate.from_template("{input}"),
         # ])
-        
+
         # chain = LLMChain(
         #     llm=llm, 
         #     prompt=prompt,
         #     verbose=True,
         #     memory=memorys[user][chat_list_id]
         # )
-        
+
         PROMPT_TEMPLATE = """
             Please answer in Korean
             You are an AI doctor counseling patients
@@ -70,7 +68,7 @@ def chat_llm(request):
 
             {question}
         """
-            
+
         PROMPT = PromptTemplate(input_variables=["context", "question"], template=PROMPT_TEMPLATE)
 
         chain = RetrievalQA.from_llm(
@@ -82,14 +80,14 @@ def chat_llm(request):
             verbose=True,
             llm_chain_kwargs={"verbose": True}
         )
-    
+
         chain_output = chain({"query": message})
         print(chain_output)
         result['llm_message'] = chain_output['result']
-        
+
         # 언어 처리 모델로 메시지 처리 후 결과를 context에 추가
         # result['llm_message'] = chain.run(input=message)
-        
+
         # ChatHistory 모델을 사용하여 대화 내용 저장
         ChatHistory.objects.create(
             chat_list_id=chat_list_id,
@@ -103,35 +101,35 @@ def chat_llm(request):
             message=result['llm_message'],
             div='llm'
         )
-        
+
         chat_hist = ChatHistory.objects.filter(chat_list_id=chat_list_id).order_by('-id').first()
-        
+
         ChatList.objects.filter(id=chat_list_id).update(last_message=chat_hist.message)
 
     return JsonResponse(result)
 
+
 @require_POST
-def set_chat_hisotry(request):
-    
+def set_chat_history(request):
     user = request.user
     data = json.loads(request.body)
     chat_list_id = data.get('chatId')
     result = []
-    
+
     chat_history = ChatHistory.objects.filter(chat_list_id=chat_list_id).order_by('id')
-    
+
     if not user in memorys:
         memorys[user] = {}
-    
+
     if not chat_list_id in memorys[user]:
         # ChatHistory 모델에서 chat_list_id로 조회
         memory = ConversationBufferWindowMemory(
-            memory_key="chat_history", 
-            output_key="result", 
-            k=5, 
+            memory_key="chat_history",
+            output_key="result",
+            k=5,
             return_messages=True
         )
-        
+
         if chat_history.exists():
             # 조회 결과가 있는 경우에만 ConversationBufferMemory에 값 할당
             for chat in chat_history:
@@ -141,11 +139,11 @@ def set_chat_hisotry(request):
                     memory.chat_memory.add_ai_message(chat.message)
 
         memorys[user][chat_list_id] = memory
-            
+
     chat_history_data = serializers.serialize('json', chat_history)
-    
+
     json_data = json.loads(chat_history_data)
-    
+
     result = []
 
     # 데이터 파싱
@@ -161,15 +159,14 @@ def set_chat_hisotry(request):
 
     # 결과를 JSON 형태로 변환
     json_result = json.dumps(result, ensure_ascii=False)
-    
+
     print(json_result)
-    
+
     return HttpResponse(json_result)
 
 
 @require_GET
 def get_hospital(request):
-    
     url = 'http://apis.data.go.kr/B551182/hospInfoServicev2/getHospBasisList'
     params = {
         'serviceKey': HOSPITAL_API_KEY,
@@ -187,7 +184,6 @@ def get_hospital(request):
         'radius': '3000'
     }
 
-    
     response = requests.get(url=url, params=params)
     if response.status_code == 200:
         xml_data = response.content  # XML 응답 데이터
@@ -199,11 +195,10 @@ def get_hospital(request):
         return HttpResponse(data_dict)
     else:
         return HttpResponse(response.status_code)
-        
+
 
 @require_GET
 def analyze_symptoms(request):
-    
     url = 'http://apis.data.go.kr/B551182/diseaseInfoService/getDissNameCodeList'
     params = {
         "serviceKey": "YOUR_SERVICE_KEY",
@@ -215,7 +210,6 @@ def analyze_symptoms(request):
         "searchText": "감기"
     }
 
-    
     response = requests.get(url=url, params=params)
     if response.status_code == 200:
         xml_data = response.content  # XML 응답 데이터
@@ -228,16 +222,14 @@ def analyze_symptoms(request):
     else:
         print('Error:', response.content)
         return HttpResponse(response.status_code)
-        
-        
-        
+
+
 @require_GET
 def set_chroma(request):
-    
     question = request.GET.get('question')
-    
+
     db = Chroma(embedding_function=embeddings, persist_directory="chroma_db")
-    
+
     # df = pd.read_excel('static/file/컬럼정보_코드.xls')
     # # 열 제목 추출
     # column_names = df.columns.tolist()
@@ -247,16 +239,13 @@ def set_chroma(request):
     # for _, row in df.iterrows():
     #     row_dict = {col: str(val) for col, val in zip(column_names, row.astype(str))}
     #     texts.append(json.dumps(row_dict, ensure_ascii=False))
-        
+
     # print(texts)
     # metadatas = [{'index': idx} for idx in df.index]
     # db.add_texts(texts, metadatas=metadatas)
-    
-    
+
     retriever = db.as_retriever()
     test = retriever.get_relevant_documents(question)
     print(test)
-    
-    
-    return HttpResponse(test)
 
+    return HttpResponse(test)
