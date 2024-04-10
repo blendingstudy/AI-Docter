@@ -38,7 +38,7 @@
         }
 
         if(chatId) {
-            fetch('http://127.0.0.1:8000/chat/set-history', {
+            fetch('http://localhost:8000/chat/set-history', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -74,7 +74,7 @@
             addMessage('user', sendMessage);
             messageInput.value = ''; // 입력창 비우기
             // 서버로 메시지 전송
-            await fetch('http://127.0.0.1:8000/chat/llm', {
+            await fetch('http://localhost:8000/chat/llm', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
