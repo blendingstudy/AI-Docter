@@ -13,6 +13,10 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -142,3 +146,12 @@ LOGIN_URL = '/view/login'
 # SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 3600
+
+# API 키 가져 오기
+OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY")
+SERPAPI_API_KEY: str = os.getenv("SERPAPI_API_KEY")
+WOLFRAM_ALPHA_APPID: str = os.getenv("WOLFRAM_ALPHA_APPID")
+GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY")
+GOOGLE_CSE_ID: str = os.getenv("GOOGLE_CSE_ID")
+NAVER_CLIENT_ID: str = os.getenv("NAVER_CLIENT_ID")
+NAVER_CLIENT_SECRET: str = os.getenv("NAVER_CLIENT_SECRET")

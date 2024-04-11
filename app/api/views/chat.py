@@ -1,28 +1,25 @@
 import json
-import os
 import xml.etree.ElementTree as ET
-from django.http import JsonResponse, HttpResponse
-from django.core import serializers
-from django.views.decorators.http import require_POST, require_GET
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain.chains.retrieval_qa.base import RetrievalQA
-from langchain.vectorstores.chroma import Chroma
-from langchain.prompts import PromptTemplate
-from langchain.memory import ConversationBufferWindowMemory
+
 import requests
+from django.conf import settings
+from django.core import serializers
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.http import require_POST, require_GET
+from langchain.chains.llm import LLMChain
+from langchain.memory import ConversationBufferWindowMemory
+from langchain.vectorstores.chroma import Chroma
+from langchain_core.prompts import HumanMessagePromptTemplate, SystemMessagePromptTemplate, ChatPromptTemplate
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from app.aidocter.models.chat_history import ChatHistory
 from app.aidocter.models.chat_list import ChatList
 from common.utils import Utils
+from common.searchApi import SearchApi
 
-load_dotenv()
-
-HOSPITAL_API_KEY = os.getenv('HOSPITAL_API_KEY')
-
-OPEN_API_KEY = os.getenv('OPEN_API_KEY')
-llm = ChatOpenAI(openai_api_key=OPEN_API_KEY)
-embeddings = OpenAIEmbeddings(openai_api_key=OPEN_API_KEY)
+llm = ChatOpenAI(openai_api_key=settings.OPENAI_API_KEY)
+embeddings = OpenAIEmbeddings(openai_api_key=settings.OPENAI_API_KEY)
+api = SearchApi()
 memorys: dict = {}  #대화내용 저장 메모리
 
 
@@ -43,50 +40,25 @@ def chat_llm(request):
     result['user_message'] = message  # 사용자가 제공한 메시지를 context에 추가
 
     if message:  # 사용자가 메시지를 제공한 경우에만 처리
-        # prompt = ChatPromptTemplate.from_messages([
-        #     SystemMessagePromptTemplate.from_template("""
-        #         Please answer in Korean
-        #         You are an AI doctor counseling patients
+        prompt = ChatPromptTemplate.from_messages([
+            SystemMessagePromptTemplate.from_template("""
+                Please answer in Korean
+                You are an AI doctor counseling patients
 
-        #         {chat_history}
-        #     """),
-        #     HumanMessagePromptTemplate.from_template("{input}"),
-        # ])
+                {history}
+            """),
+            HumanMessagePromptTemplate.from_template("{input}"),
+        ])
 
-        # chain = LLMChain(
-        #     llm=llm, 
-        #     prompt=prompt,
-        #     verbose=True,
-        #     memory=memorys[user][chat_list_id]
-        # )
-
-        PROMPT_TEMPLATE = """
-            Please answer in Korean
-            You are an AI doctor counseling patients
- 
-            {context}
-
-            {question}
-        """
-
-        PROMPT = PromptTemplate(input_variables=["context", "question"], template=PROMPT_TEMPLATE)
-
-        chain = RetrievalQA.from_llm(
+        chain = LLMChain(
             llm=llm,
-            prompt=PROMPT,
-            retriever=retriever,
-            memory=memorys[user][chat_list_id],
-            return_source_documents=True,
+            prompt=prompt,
             verbose=True,
-            llm_chain_kwargs={"verbose": True}
+            memory=memorys[user][chat_list_id]
         )
 
-        chain_output = chain({"query": message})
-        print(chain_output)
-        result['llm_message'] = chain_output['result']
-
         # 언어 처리 모델로 메시지 처리 후 결과를 context에 추가
-        # result['llm_message'] = chain.run(input=message)
+        result['llm_message'] = chain.run(input=message)
 
         # ChatHistory 모델을 사용하여 대화 내용 저장
         ChatHistory.objects.create(
@@ -118,17 +90,12 @@ def set_chat_history(request):
 
     chat_history = ChatHistory.objects.filter(chat_list_id=chat_list_id).order_by('id')
 
-    if not user in memorys:
+    if user not in memorys:
         memorys[user] = {}
 
-    if not chat_list_id in memorys[user]:
+    if chat_list_id not in memorys[user]:
         # ChatHistory 모델에서 chat_list_id로 조회
-        memory = ConversationBufferWindowMemory(
-            memory_key="chat_history",
-            output_key="result",
-            k=5,
-            return_messages=True
-        )
+        memory = ConversationBufferWindowMemory()
 
         if chat_history.exists():
             # 조회 결과가 있는 경우에만 ConversationBufferMemory에 값 할당
@@ -249,3 +216,14 @@ def set_chroma(request):
     print(test)
 
     return HttpResponse(test)
+
+
+@require_GET
+def search_google(request):
+
+    question = request.GET.get('question')
+    print("질문: "+question)
+    result = api.google_api(question)
+    print(result)
+
+    return HttpResponse(result)
