@@ -136,7 +136,7 @@ def set_chat_history(request):
 def get_hospital(request):
     url = 'http://apis.data.go.kr/B551182/hospInfoServicev2/getHospBasisList'
     params = {
-        'serviceKey': HOSPITAL_API_KEY,
+        'serviceKey': settings.HOSPITAL_API_KEY,
         'pageNo': '1',
         'numOfRows': '10',
         'sidoCd': '110000',
@@ -165,10 +165,10 @@ def get_hospital(request):
 
 
 @require_GET
-def analyze_symptoms(request):
+def get_disease(request):
     url = 'http://apis.data.go.kr/B551182/diseaseInfoService/getDissNameCodeList'
     params = {
-        "serviceKey": "YOUR_SERVICE_KEY",
+        "serviceKey": settings.DISEASE_APY_KEY,
         "numOfRows": "10",
         "pageNo": "1",
         "sickType": "1",
@@ -220,10 +220,19 @@ def set_chroma(request):
 
 @require_GET
 def search_google(request):
-
     question = request.GET.get('question')
-    print("질문: "+question)
+    print("질문: " + question)
     result = api.google_api(question)
+    print(result)
+
+    return HttpResponse(result)
+
+
+@require_GET
+def search_naver(request):
+    question = request.GET.get('question')
+    print("질문: " + question)
+    result = api.naver_api(question)
     print(result)
 
     return HttpResponse(result)
