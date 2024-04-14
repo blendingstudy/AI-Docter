@@ -31,11 +31,12 @@ def chat_llm(request):
     chat_list_id = data.get('chatId')
     message = data.get('message')  # 사용자가 제공한 메시지 가져오기
     result = {}
-    db = Chroma(embedding_function=embeddings, persist_directory="chroma_db")
-    retriever = db.as_retriever()
+
 
     print(message)
     print(chat_list_id)
+
+    search_result = api.google_api(message)
 
     result['user_message'] = message  # 사용자가 제공한 메시지를 context에 추가
 
@@ -45,6 +46,8 @@ def chat_llm(request):
                 Please answer in Korean
                 You are an AI doctor counseling patients
 
+                
+                
                 {history}
             """),
             HumanMessagePromptTemplate.from_template("{input}"),
